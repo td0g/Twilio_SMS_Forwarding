@@ -1,0 +1,26 @@
+function doGet(e){
+  var auth = "abcd" //Enter your passcode (NOT your SID or Auth Token)
+  
+//Check that passcode matches
+  var pc = e.parameter.passcode;
+  if (pc != auth) return ContentService.createTextOutput("U/K")
+  
+//Create phonebook array
+  var phoneBook = new Array(50)
+  for (i = 0; i < phoneBook.length; i++) phoneBook[i] = new Array(2);
+  phoneBook[0][0] = "14031234567";  //Person 1
+  phoneBook[0][1] = "John Clark";   //Person 1
+  phoneBook[1][0] = "14039876543";  //Person 2
+  phoneBook[1][1] = "Ding Chavez";  //Person 2
+  
+//Get name from request
+  var from = e.parameter.num;
+  from = from.replace("+","")
+  from = from.replace(" ","")
+
+//Find name in phonebook and return result
+  for (i = 0; i < phoneBook.length; i++){
+    if (from == phoneBook[i][0]) return ContentService.createTextOutput(phoneBook[i][1]);
+  }
+  return ContentService.createTextOutput("U/K")
+}

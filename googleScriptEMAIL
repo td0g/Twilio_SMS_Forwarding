@@ -1,0 +1,22 @@
+function doGet(e){
+  var auth = "abcd" //Enter your passcode (NOT your SID or Auth Token)
+  
+//Check that passcode matches
+  var pc = e.parameter.passcode;
+  if (pc == auth) {
+    
+//Get info for email
+    var from = e.parameter.From;
+    var to = e.parameter.To;
+    var body = e.parameter.Body;
+    var emailAddress = e.parameter.Addr
+    
+//Send email
+    var message = body;
+    var subject = 'SMS from ' + from + ' to ' + to + ' received';
+    MailApp.sendEmail(emailAddress, subject, message);
+    var output = ContentService.createTextOutput('<Response/>');
+    output.setMimeType(ContentService.MimeType.XML);
+    return output;
+  }
+}

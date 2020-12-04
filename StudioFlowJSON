@@ -1,0 +1,333 @@
+{
+  "description": "A New Flow",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "next": "Contact_Info",
+          "event": "incomingMessage"
+        },
+        {
+          "event": "incomingCall"
+        },
+        {
+          "event": "incomingRequest"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -70,
+          "y": -130
+        }
+      }
+    },
+    {
+      "name": "SMS_FwdMEDIA",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "Email_Fwd_MEDIA",
+          "event": "sent"
+        },
+        {
+          "next": "Email_Fwd_MEDIA",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -100,
+          "y": 520
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{flow.variables.phNumber}}",
+        "body": "FROM: {{trigger.message.From}} \n1ST_NAME: {{flow.variables.phName}}\nFULL_NAME: {{widgets.phoneBook_GET.body}} \nMEDIA: {{trigger.message.MediaUrl0}}\n\n{{trigger.message.Body}}"
+      }
+    },
+    {
+      "name": "isThisMMS",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "SMS_FwdMEDIA",
+          "event": "noMatch"
+        },
+        {
+          "next": "SMS_Fwd_NOMEDIA",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "{{trigger.message.MediaUrl0}}",
+              "arguments": [
+                "{{trigger.message.MediaUrl0}}"
+              ],
+              "type": "is_blank",
+              "value": "Is Blank"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.message.MediaUrl0}}",
+        "offset": {
+          "x": -10,
+          "y": 300
+        }
+      }
+    },
+    {
+      "name": "SMS_Fwd_NOMEDIA",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "Email_Fwd_NOMEDIA",
+          "event": "sent"
+        },
+        {
+          "next": "Email_Fwd_NOMEDIA",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 250,
+          "y": 520
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{flow.variables.phNumber}}",
+        "body": "FROM: {{trigger.message.From}}  \n1ST_NAME: {{flow.variables.phName}}\nFULL_NAME: {{widgets.phoneBook_GET.body}} \nNO MEDIA\n\n{{trigger.message.Body}}"
+      }
+    },
+    {
+      "name": "Email_Fwd_NOMEDIA",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "next": "reply_NOMEDIA",
+          "event": "success"
+        },
+        {
+          "next": "reply_NOMEDIA",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 270,
+          "y": 740
+        },
+        "method": "GET",
+        "content_type": "application/x-www-form-urlencoded;charset=utf-8",
+        "parameters": [
+          {
+            "value": "{{flow.channel.address}}",
+            "key": "From"
+          },
+          {
+            "value": "{{flow.channel.address}}",
+            "key": "To"
+          },
+          {
+            "value": "{{trigger.message.Body}}",
+            "key": "Body"
+          },
+          {
+            "value": "{{flow.variables.emailAddress}}",
+            "key": "Addr"
+          },
+          {
+            "value": "{{flow.variables.passcode}}",
+            "key": "passcode"
+          }
+        ],
+        "url": "GOOGLE_SCRIPT_URL"
+      }
+    },
+    {
+      "name": "Contact_Info",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "phoneBook_GET",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "your_email@gmail.com",
+            "key": "emailAddress"
+          },
+          {
+            "value": "+14031234567",
+            "key": "phNumber"
+          },
+          {
+            "value": "abcd",
+            "key": "passcode"
+          }
+        ],
+        "offset": {
+          "x": -10,
+          "y": -510
+        }
+      }
+    },
+    {
+      "name": "Email_Fwd_MEDIA",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "next": "reply_MEDIA",
+          "event": "success"
+        },
+        {
+          "next": "reply_MEDIA",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -90,
+          "y": 740
+        },
+        "method": "GET",
+        "content_type": "application/x-www-form-urlencoded;charset=utf-8",
+        "parameters": [
+          {
+            "value": "{{flow.channel.address}}",
+            "key": "From"
+          },
+          {
+            "value": "{{flow.channel.address}}",
+            "key": "To"
+          },
+          {
+            "value": "{{trigger.message.Body}} MEDIA:  {{trigger.message.MediaUrl0}}",
+            "key": "Body"
+          },
+          {
+            "value": "{{flow.variables.emailAddress}}",
+            "key": "Addr"
+          },
+          {
+            "value": "{{flow.variables.passcode}}",
+            "key": "passcode"
+          }
+        ],
+        "url": "GOOGLE_SCRIPT_URL"
+      }
+    },
+    {
+      "name": "parseFirstName",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "isThisMMS",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "{{ widgets.phoneBook_GET.body | split:\" \"  | first}}",
+            "key": "phName"
+          }
+        ],
+        "offset": {
+          "x": -10,
+          "y": 120
+        }
+      }
+    },
+    {
+      "name": "phoneBook_GET",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "next": "parseFirstName",
+          "event": "success"
+        },
+        {
+          "next": "parseFirstName",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 420,
+          "y": -100
+        },
+        "method": "GET",
+        "content_type": "application/x-www-form-urlencoded;charset=utf-8",
+        "parameters": [
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "num"
+          },
+          {
+            "value": "{{flow.variables.passcode}}",
+            "key": "passcode"
+          }
+        ],
+        "url": "GOOGLE_SCRIPT_URL"
+      }
+    },
+    {
+      "name": "reply_NOMEDIA",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 260,
+          "y": 990
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{trigger.message.From}}",
+        "body": "Thank you for texting us {{flow.variables.phName}}!\nNO MEDIA\nBODY:\n{{trigger.message.Body}}"
+      }
+    },
+    {
+      "name": "reply_MEDIA",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -100,
+          "y": 980
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{trigger.message.From}}",
+        "body": "Thank you for texting us {{flow.variables.phName}}!\nMEDIA: {{trigger.message.MediaUrl0}} \nBODY:\n{{trigger.message.Body}}"
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}

@@ -1,0 +1,160 @@
+//Create new .NET Framework Console App
+
+using System;
+using System.Net;
+using System.IO;
+using System.Diagnostics;
+//https://www.twilio.com/docs/sms/api/media-resource#instance
+
+namespace Twilio_003
+{
+    class Program
+    {
+        static string SID = "";   //Get from Twilio Dashboard
+        static string Auth = "";    //Get from Twilio Dashboard
+
+//Get messages
+        static void Main(string[] args)
+        {
+            string url = "https://api.twilio.com/2010-04-01/Accounts/" + SID + "/Messages";
+            string allData = getDataFromPage(url);
+            string[] allMessages = parseMessages(allData);
+
+
+//Create IMAGES html
+            string path = Directory.GetCurrentDirectory() + "\\images.html";
+            using (StreamWriter sw = File.CreateText(path))
+            {
+
+                for (int i = 0; i < allMessages.Length; i++)
+                {
+                    string[] s = parseOneMessage(allMessages[i]);
+
+                    string MSID = getSingleInfo(s, "Sid");
+                    string URI = getSingleInfo(s, "Uri");
+                    string NUM_MEDIA = getSingleInfo(s, "NumMedia");
+                    //if (NUM_MEDIA != "0" && URI != "")
+                    //{
+                    //    url = "https://api.twilio.com/" + URI;
+                    //    string messageData = getDataFromPage(url);
+                    //    string[] m = parseOneMessage(messageData);
+                    //}
+                    string BODY = getSingleInfo(s, "Body");
+                    if (BODY.IndexOf("MEDIA: ") > 0)
+                    {
+                        string mediaURL = BODY.Substring(BODY.IndexOf("MEDIA: ") + 7);
+                        if (mediaURL.IndexOf("\n") > 0) mediaURL = mediaURL.Substring(0, mediaURL.IndexOf("\n"));
+                        mediaURL.Replace(" ", "");
+                        mediaURL.Replace(" ", "");
+                        Console.WriteLine(mediaURL);
+                        sw.WriteLine("<br><h>FROM: " + getSingleInfo(s, "From") + "</h><br>");
+                        string htmlString = "<iframe width=\"800\" height=\"800\" src=\"" + (mediaURL + "\"></iframe>").Replace(" ", "");
+                        sw.WriteLine(htmlString);
+                    }
+                }
+            }
+
+
+//Create TEXT html
+            path = Directory.GetCurrentDirectory() + "\\text.html";
+            using (StreamWriter sw = File.CreateText(path))
+            {
+                for (int i = 0; i < allMessages.Length; i++)
+                {
+                    string[] s = parseOneMessage(allMessages[i]);
+                    string BODY = getSingleInfo(s, "Body");
+                    sw.WriteLine("<br><h>FROM: " + getSingleInfo(s, "From") + "</h><br><p>" + BODY + "</p>");
+                }
+            }
+
+
+            Console.WriteLine("OPENINING: " + path);
+            Process cmd = new Process();
+            cmd.StartInfo.FileName = "cmd.exe";
+
+            cmd.StartInfo.RedirectStandardInput = true;
+            cmd.StartInfo.RedirectStandardOutput = true;
+            cmd.StartInfo.CreateNoWindow = true;
+            cmd.StartInfo.UseShellExecute = false;
+            cmd.Start();
+
+            cmd.StandardInput.WriteLine("firefox.exe " + path);
+            cmd.StandardInput.Flush();
+            cmd.StandardInput.Close();
+            cmd.WaitForExit();
+            Console.WriteLine(cmd.StandardOutput.ReadToEnd());
+
+            System.Diagnostics.Process.Start("CMD.exe", "firefox.exe " + path);
+
+        }
+
+
+
+
+
+
+
+
+        static string[] parseMessages(string _s)
+        {
+            string[] stringArray = _s.Split(new[] { "</Body>" }, StringSplitOptions.RemoveEmptyEntries);
+            return stringArray;
+        }
+
+        static string[] parseOneMessage(string _s)
+        {
+            string[] stringArray = _s.Split(new[] { "</" }, StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < stringArray.Length; i++)
+            {
+                while (stringArray[i].IndexOf("><") > 0)
+                {
+                    int inOf = stringArray[i].IndexOf("><") + 2;
+                    stringArray[i] = stringArray[i].Substring(inOf);
+                }
+                if (stringArray[i].Substring(0, 1) == "<") stringArray[i] = stringArray[i].Substring(1);
+            }
+            if (_s.IndexOf("<Body>") > -1) stringArray[0] = _s.Substring(_s.IndexOf("<Body>") + 6);
+            if (_s.IndexOf("<Media>") > -1) stringArray[1] = _s.Substring(_s.IndexOf("<Media>") + 7);
+            return stringArray;
+        }
+
+        static string getSingleInfo(string[] _s, string _info)
+        {
+            for (int i = 0; i < _s.Length; i++)
+            {
+                if (_s[i].Length > _info.Length + 1)
+                {
+                    string thisS = _s[i];
+                    if (thisS.Substring(0, _info.Length) == _info)
+                    {
+                        return thisS.Substring(1 + _info.Length);
+                    }
+                }
+            }
+            return "";
+        }
+
+
+        static string getDataFromPage(string _w, bool auth = true)
+        {
+            WebClient wc = new WebClient();
+            wc.Credentials = new NetworkCredential(SID, Auth);
+            string allData = "";
+            try
+            {
+                using (Stream stream = wc.OpenRead(new Uri(_w)))
+                {
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        allData = reader.ReadToEnd();
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                //Error handling
+            }
+            return allData;
+        }
+    }
+}
